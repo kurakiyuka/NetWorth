@@ -8,7 +8,7 @@ from .models import NetModel, TotalNetModel
 
 def index(requset):
     all_netmodel = NetModel.objects.all()
-    
+
     if requset.POST:
         post_name = requset.POST['name']
         post_value = requset.POST['value']
@@ -39,8 +39,8 @@ def index(requset):
     all_totalnetmodel_date = []
     all_totalnetmodel_price = []
     for totalnetmodel in all_totalnetmodel:
-        all_totalnetmodel_date.append(str(totalnetmodel.update_date))
-        all_totalnetmodel_date.append(totalnetmodel.total)
+        all_totalnetmodel_date.append(str(totalnetmodel.update_date)[:10])
+        all_totalnetmodel_price.append(totalnetmodel.total)
 
     return render(requset, 'index.html', {
         'netmodel_list': all_netmodel,

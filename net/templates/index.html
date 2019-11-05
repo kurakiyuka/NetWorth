@@ -11,19 +11,27 @@
 </head>
 
 <body>
-    <div>
-        <h1>资产总览</h1>
-        <ul>
-            {% for netmodel in netmodel_list %}
-            <li>{{ netmodel.assets_name }}：{{ netmodel.total_price }}</li>
-            {% endfor %}
-        </ul>
-        <h1>资产总额</h1>
-        <p>总额：{{ total_assets }}</p>
-    </div>
-    <div class="container">
-        <canvas id="myChart"></canvas>
-    </div>
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
+        <a class="navbar-brand" href="#">Personal Net Worth Chart</a>
+    </nav>
+    <main role="main" class="container-fluid">
+        <div class="row">
+            <div class="col-md-8">
+                <canvas id="myChart"></canvas>
+            </div>
+            <div class="col-md-4">
+                <h1>资产总览</h1>
+                <ul>
+                    {% for netmodel in netmodel_list %}
+                    <li>{{ netmodel.assets_name }}：{{ netmodel.total_price }}</li>
+                    {% endfor %}
+                </ul>
+                <h1>资产总额</h1>
+                <p>总额：{{ total_assets }}</p>
+            </div>
+        </div>
+
+    </main>
 
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
         integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
@@ -38,13 +46,19 @@
     <script>
         var ctx = document.getElementById('myChart');
         var all_totalnetmodel_price = {{ all_totalnetmodel_price | safe }};
-        console.log(all_totalnetmodel_price);
+        var all_totalnetmodel_date = {{ all_totalnetmodel_date | safe }};
         var myChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: all_totalnetmodel_price,
+                labels: all_totalnetmodel_date,
                 datasets: [{
-                    data: all_totalnetmodel_price
+                    label: 'Net Worth',
+                    data: all_totalnetmodel_price,
+                    borderColor: 'rgba(36, 162, 235, 1)',
+                    backgroundColor: 'rgba(36, 162, 235, 0.4)',
+                    pointBackgroundColor: 'rgba(36, 162, 235, 1)',
+                    pointRadius: 5,
+                    pointHoverRadius: 10
                 }]
             }
         });
