@@ -20,14 +20,27 @@
                 <canvas id="myChart"></canvas>
             </div>
             <div class="col-md-4">
-                <h1>资产总览</h1>
-                <ul>
-                    {% for netmodel in netmodel_list %}
-                    <li>{{ netmodel.assets_name }}：{{ netmodel.total_price }}</li>
-                    {% endfor %}
-                </ul>
-                <h1>资产总额</h1>
-                <p>总额：{{ total_assets }}</p>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="my-0 font-weight-normal">Assets Overview</h4>
+                    </div>
+                    <div class="card-body">
+                        {% for holding_account in all_holding_account %}
+                        <p>{{ holding_account }}</p>
+                        <ul class="list-unstyled mt-3 mb-4">
+                            {% for netmodel in netmodel_list %}{% if netmodel.holding_account == holding_account %}
+                            <li>{{ netmodel.assets_name }}：{{ netmodel.total_price }}</li>{% endif %}
+                            {% endfor %}
+                        </ul>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="my-0 font-weight-normal">Net Worth</h4>
+                    </div>
+                    <p>{{ total_assets }}</p>
+                </div>
             </div>
         </div>
 
