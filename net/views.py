@@ -34,8 +34,8 @@ def index(requset):
     new_totalnetmodel = TotalNetModel()
     for netmodel in all_netmodel:
         if netmodel.assets_type == 'Assets':
-            if netmodel.currency_type != 'RMB':
-                netmodel.total_price = netmodel.total_price * netmodel.exchange_rate
+            if netmodel.currency_type.currency_type_name != 'RMB':
+                netmodel.total_price = round(netmodel.total_price * netmodel.currency_type.exchange_rate, 2)
             total_assets = total_assets + netmodel.total_price
         else:
             total_assets = total_assets - netmodel.total_price
@@ -69,3 +69,6 @@ def edit(requset):
     return render(requset, 'edit.html', {
         'name_list': all_name
     })
+
+def success(requset):
+    return render(requset, 'success.html')
