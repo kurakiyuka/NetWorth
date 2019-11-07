@@ -7,6 +7,9 @@
     <title>Document</title>
 </head>
 <body>
-    <p>OK</p>
+    {% for netmodel in all_netmodel %}
+    {% if netmodel.assets_category == 'Stocks' or netmodel.assets_category == 'Funds' %}
+    <p>{{ netmodel.assets_name }}: {{ netmodel.unit_price }}</p>
+    {% endif %}{% endfor %}
 </body>
 </html>

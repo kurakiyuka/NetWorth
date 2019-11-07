@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-import json
+from io import StringIO, BytesIO
+import urllib.request
+import gzip
 from .models import NetModel, TotalNetModel
 
 # Create your views here.
@@ -28,14 +30,15 @@ def index(requset):
                 else:
                     netmodel.total_price = int(post_value)
                 netmodel.save()
-                break   
+                break
 
     total_assets = 0
     new_totalnetmodel = TotalNetModel()
     for netmodel in all_netmodel:
         if netmodel.assets_type == 'Assets':
-            if netmodel.currency_type.currency_type_name != 'RMB':
-                netmodel.total_price = round(netmodel.total_price * netmodel.currency_type.exchange_rate, 2)
+            if netmodel.currencytype.currency_type_name != 'RMB':
+                netmodel.total_price = round(
+                    netmodel.total_price * netmodel.currencytype.exchange_rate, 2)
             total_assets = total_assets + netmodel.total_price
         else:
             total_assets = total_assets - netmodel.total_price
@@ -43,7 +46,7 @@ def index(requset):
     # 只要有POST过来，就存一份总资产
     if requset.POST:
         new_totalnetmodel.save()
-    
+
     # 把总资产数据都取出提供给Chart使用
     all_totalnetmodel = TotalNetModel.objects.all()
     all_totalnetmodel_date = []
@@ -70,5 +73,35 @@ def edit(requset):
         'name_list': all_name
     })
 
+
 def success(requset):
-    return render(requset, 'success.html')
+    base_url = 'http://hq.sinajs.cn/format=text&list='
+    all_netmodel = NetModel.objects.all()
+    for netmodel in all_netmodel:
+        if netmodel.assets_category == 'Stocks' and netmodel.market == 'usr':
+            url = base_url + netmodel.market + '_' + str(netmodel.code).lower()
+            response = urllib.request.urlopen(url)
+            if response.getcode() == 200:
+                netmodel.unit_price = response.read().decode('GBK').split(',')[1]
+            else:
+                continue
+        elif netmodel.assets_category == 'Stocks' and netmodel.market != 'usr':
+            url = base_url + netmodel.market + netmodel.code
+            response = urllib.request.urlopen(url)
+            if response.getcode() == 200:
+                netmodel.unit_price = response.read().decode('GBK').split(',')[3]
+            else:
+                continue
+        elif netmodel.assets_category == 'Funds':
+            url = base_url + netmodel.market + '_' + netmodel.code
+            response = urllib.request.urlopen(url)
+            if response.getcode() == 200:
+                netmodel.unit_price = response.read().decode('GBK').split(',')[1]
+            else:
+                continue
+        else:
+            continue
+
+    return render(requset, 'success.html', {
+        'all_netmodel': all_netmodel
+    })
