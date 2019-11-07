@@ -3,12 +3,12 @@ from django.http import HttpResponse
 from io import StringIO, BytesIO
 import urllib.request
 import gzip
-from .models import NetModel, TotalNetModel
+from .models import NetModel, TotalNetModel, CurrencyType, MonthlyChange
 
 # Create your views here.
 
 
-def index(requset):
+def index(request):
     # 为Overview部分准备数据
     all_netmodel = NetModel.objects.all()
     # 生成一个holding_account组成的set()对象
@@ -17,10 +17,10 @@ def index(requset):
         all_holding_account.add(netmodel.holding_account)
 
     # 将edit中的change存储
-    if requset.POST:
-        post_name = requset.POST['name']
-        post_value = requset.POST['value']
-        post_change_type = requset.POST['change_type']
+    if request.POST:
+        post_name = request.POST['name']
+        post_value = request.POST['value']
+        post_change_type = request.POST['change_type']
         for netmodel in all_netmodel:
             if netmodel.assets_name == post_name:
                 if post_change_type == '+':
@@ -44,7 +44,7 @@ def index(requset):
             total_assets = total_assets - netmodel.total_price
     new_totalnetmodel.total = total_assets
     # 只要有POST过来，就存一份总资产
-    if requset.POST:
+    if request.POST:
         new_totalnetmodel.save()
 
     # 把总资产数据都取出提供给Chart使用
@@ -55,26 +55,26 @@ def index(requset):
         all_totalnetmodel_date.append(str(totalnetmodel.update_date)[:10])
         all_totalnetmodel_price.append(totalnetmodel.total)
 
-    return render(requset, 'index.html', {
+    return render(request, 'index.html', {
         'netmodel_list': all_netmodel,
         'total_assets': total_assets,
         'all_holding_account': all_holding_account,
-        'all_totalnetmodel_date': all_totalnetmodel_date,
-        'all_totalnetmodel_price': all_totalnetmodel_price
+        'all_totalnetmodel_date': all_totalnetmodel_date[-10:],
+        'all_totalnetmodel_price': all_totalnetmodel_price[-10:]
     })
 
 
-def edit(requset):
+def edit(request):
     all_netmodel = NetModel.objects.all()
     all_name = []
     for netmodel in all_netmodel:
         all_name.append(netmodel.assets_name)
-    return render(requset, 'edit.html', {
+    return render(request, 'edit.html', {
         'name_list': all_name
     })
 
 
-def success(requset):
+def success(request):
     base_url = 'http://hq.sinajs.cn/format=text&list='
     all_netmodel = NetModel.objects.all()
     for netmodel in all_netmodel:
@@ -82,26 +82,53 @@ def success(requset):
             url = base_url + netmodel.market + '_' + str(netmodel.code).lower()
             response = urllib.request.urlopen(url)
             if response.getcode() == 200:
-                netmodel.unit_price = response.read().decode('GBK').split(',')[1]
+                netmodel.unit_price = float(response.read().decode('GBK').split(',')[1])
+                netmodel.total_price = round(netmodel.unit_price * netmodel.amount, 2)
+                netmodel.save()
             else:
                 continue
         elif netmodel.assets_category == 'Stocks' and netmodel.market != 'usr':
             url = base_url + netmodel.market + netmodel.code
             response = urllib.request.urlopen(url)
             if response.getcode() == 200:
-                netmodel.unit_price = response.read().decode('GBK').split(',')[3]
+                netmodel.unit_price = float(response.read().decode('GBK').split(',')[3])
+                netmodel.total_price = round(netmodel.unit_price * netmodel.amount, 2)
+                netmodel.save()
             else:
                 continue
         elif netmodel.assets_category == 'Funds':
             url = base_url + netmodel.market + '_' + netmodel.code
             response = urllib.request.urlopen(url)
             if response.getcode() == 200:
-                netmodel.unit_price = response.read().decode('GBK').split(',')[1]
+                netmodel.unit_price = float(response.read().decode('GBK').split(',')[1])
+                netmodel.total_price = round(netmodel.unit_price * netmodel.amount, 2)
+                netmodel.save()
             else:
                 continue
         else:
             continue
+    
+    all_currency = CurrencyType.objects.all()
+    for currency in all_currency:
+        if currency.code != 'CNY':
+            url = base_url + currency.code
+            response = urllib.request.urlopen(url)
+            if response.getcode() == 200:
+                currency.exchange_rate = response.read().decode('GBK').split(',')[1]
+                currency.save()
+            else:
+                continue            
 
-    return render(requset, 'success.html', {
+    return render(request, 'success.html', {
         'all_netmodel': all_netmodel
     })
+
+def salary(request):
+    if request.POST:
+        days = int(request.POST['day'])
+    all_netmodel = NetModel.objects.all()
+    for netmodel in all_netmodel:
+        if netmodel.id == 36:
+            netmodel.total_price = 19000 + round(19000 / 22 * days, 2)
+            netmodel.save()
+    return render(request, 'salary.html')

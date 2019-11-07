@@ -23,7 +23,7 @@ class NetModel(models.Model):
     # 股票基金代号
     code = models.CharField(max_length=10, default='000000')
     # 股票市场
-    market = models.CharField(max_length=10, null=True)
+    market = models.CharField(max_length=10, null=True, blank=True)
     # 股票数量、基金份额
     amount = models.FloatField(default=0.0)
     # 股票基金单价
@@ -64,7 +64,7 @@ class CurrencyType(models.Model):
 
     currency_type_name = models.CharField(
         max_length=10, choices=CURRENCY_TYPE_CHOICES, default='RMB', unique=True)
-    code = models.CharField(max_length=10, default='CHY')
+    code = models.CharField(max_length=10, default='CNY')
     exchange_rate = models.FloatField(default=1.0)
     update_date = models.DateTimeField(auto_now=True)
 

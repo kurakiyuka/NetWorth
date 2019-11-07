@@ -92,7 +92,12 @@
                     </div>
                     <form action="./success" method="POST">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-primary">Update Stocks Price</button>
+                        <button type="submit" class="btn btn-primary">Update Prices</button>
+                    </form>
+                    <form action="./salary" method="POST">
+                        {% csrf_token %}
+                        <input name="day"></input>
+                        <button type="submit" class="btn btn-primary">Salary</button>
                     </form>
                 </div>
             </div>
