@@ -28,8 +28,8 @@
                         {% for holding_account in all_holding_account %}
                         <h4><span class="badge badge-primary">{{ holding_account }}</span></h4>
                         <ul class="list-unstyled mt-3 mb-4">
-                            {% for netmodel in netmodel_list %}{% if netmodel.holding_account == holding_account %}
-                            <li>{{ netmodel.assets_name }}：{{ netmodel.total_price }}</li>{% endif %}
+                            {% for asset in all_assets %}{% if asset.holding_account == holding_account %}
+                            <li>{{ asset.asset_name }}：{{ asset.total_price_in_RMB }}</li>{% endif %}
                             {% endfor %}
                         </ul>
                         {% endfor %}
