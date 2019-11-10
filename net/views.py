@@ -1,11 +1,11 @@
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.db.models import Sum
 import urllib.request
 from decimal import *
 from .models import Asset, NetWorth, Currency, MonthlyChange, HoldingAccount
 
 # Create your views here.
-
 
 def index(request):
     # 为Overview部分准备数据
@@ -31,13 +31,9 @@ def index(request):
                 asset.save()
                 break
 
-    total_assets = 0
     new_totalnetmodel = NetWorth()
-    for asset in all_assets:
-        if asset.asset_type == 'Asset':
-            total_assets = total_assets + asset.total_price_in_RMB
-        else:
-            total_assets = total_assets - asset.total_price_in_RMB
+    asset_dict = Asset.objects.values('asset_type').annotate(sum = Sum('total_price_in_RMB'))
+    total_assets = round(abs(asset_dict[0]['sum'] - asset_dict[1]['sum']), 2)
     new_totalnetmodel.total = total_assets
     # 只要有POST过来，就存一份总资产
     if request.POST:
@@ -53,7 +49,7 @@ def index(request):
 
     return render(request, 'index.html', {
         'all_assets': all_assets,
-        'total_assets': new_totalnetmodel.total,
+        'total_assets': total_assets,
         'all_holding_account': all_holding_accounts,
         'all_totalnetmodel_date': all_totalnetmodel_date[-10:],
         'all_totalnetmodel_price': all_totalnetmodel_price[-10:]
@@ -61,7 +57,7 @@ def index(request):
 
 
 def edit(request):
-    all_assets_name = Asset.objects.values_list('asset_name', flat = True)
+    all_assets_name = Asset.objects.values_list('asset_name', flat=True)
     return render(request, 'edit.html', {
         'all_assets_name': all_assets_name
     })
@@ -70,48 +66,33 @@ def edit(request):
 def success(request):
     base_url = 'http://hq.sinajs.cn/format=text&list='
 
-    all_currencies = Currency.objects.all().exclude(code = 'CNY')
+    all_currencies = Currency.objects.all().exclude(code='CNY')
     for currency in all_currencies:
         url = base_url + currency.code
         response = urllib.request.urlopen(url)
         if response.getcode() == 200:
-            currency.exchange_rate = response.read().decode('GBK').split(',')[1]
+            currency.exchange_rate = response.read().decode(
+                'GBK').split(',')[1]
             currency.save()
         else:
             continue
 
-    all_assets = Asset.objects.all()
+    all_assets = Asset.objects.all().exclude(code='000000')
     for asset in all_assets:
-        if asset.asset_category == 'Stock' and asset.market == 'usr':
-            url = base_url + asset.market_prefix + str(asset.code).lower()
-            response = urllib.request.urlopen(url)
-            if response.getcode() == 200:
-                asset.unit_price = Decimal(response.read().decode('GBK').split(',')[1])
-                asset.total_price = asset.unit_price * asset.amount
-                asset.total_price_in_RMB = asset.total_price * asset.currency.exchange_rate
-                asset.save()
+        url = base_url + asset.market_prefix + str(asset.code).lower()
+        response = urllib.request.urlopen(url)
+        if response.getcode() == 200:
+            if asset.asset_category == 'Stock' and asset.market != 'usr':
+                asset.unit_price = Decimal(
+                    response.read().decode('GBK').split(',')[3])
             else:
-                continue
-        elif asset.asset_category == 'Stock' and asset.market != 'usr':
-            url = base_url + asset.market_prefix + asset.code
-            response = urllib.request.urlopen(url)
-            if response.getcode() == 200:
-                asset.unit_price = Decimal(response.read().decode('GBK').split(',')[3])
-                asset.total_price = asset.unit_price * asset.amount
-                asset.total_price_in_RMB = asset.total_price
-                asset.save()
-            else:
-                continue
-        elif asset.asset_category == 'Fund':
-            url = base_url + asset.market_prefix + asset.code
-            response = urllib.request.urlopen(url)
-            if response.getcode() == 200:
-                asset.unit_price = Decimal(response.read().decode('GBK').split(',')[1])
-                asset.total_price = asset.unit_price * asset.amount
-                asset.total_price_in_RMB = asset.total_price
-                asset.save()
-            else:
-                continue
+                asset.unit_price = Decimal(
+                    response.read().decode('GBK').split(',')[1])
+
+            asset.total_price = asset.unit_price * asset.amount
+            asset.total_price_in_RMB = asset.total_price * asset.currency.exchange_rate
+            asset.save()
+
         else:
             continue
 
@@ -123,5 +104,6 @@ def success(request):
 def salary(request):
     if request.POST:
         days = int(request.POST['day'])
-    Asset.objects.filter(id = 36).update(total_price = 19000 / 22 * days, total_price_in_RMB = 19000 / 22 * days)
+    Asset.objects.filter(id=36).update(
+        total_price=19000 / 22 * days, total_price_in_RMB=19000 / 22 * days)
     return render(request, 'salary.html')
